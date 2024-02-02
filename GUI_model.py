@@ -6,155 +6,155 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from plyer import notification
 import psutil
+import time
 
-# Mutable object to store face detection stats
-face_detection_stats = {'face_detected_count': 0, 'no_face_detected_count': 0}
 
-# Function to submit credentials and start face detection
-def submit_credentials(username_entry, password_entry):
-    username = username_entry.get()
-    password = password_entry.get()
+class FaceDetectionApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Face Detection App")
 
-    # Check credentials
-    if username == 'WhiteDevils' and password == 'WhiteDevils':
-        greeting_label.config(text=f"Hello, {username}!")
+        # Mutable object to store face detection stats
+        self.face_detection_stats = {'face_detected_count': 0, 'no_face_detected_count': 0}
 
-        # Start face detection
-        run_face_detection()
+        # Initialize total_time, productive_time, and unproductive_time
+        self.total_time = 0
+        self.productive_time = 0
+        self.unproductive_time = 0
 
-    else:
-        greeting_label.config(text="Invalid username or password")
+        # Username and password entry
+        self.username_label = ttk.Label(root, text="Username:")
+        self.username_label.grid(row=0, column=0, padx=10, pady=10)
+        self.username_entry = ttk.Entry(root)
+        self.username_entry.grid(row=0, column=1, padx=10, pady=10)
 
-# Function to update the pie chart
-def update_pie_chart():
-    # Calculate the percentage of face detected
-    total_detections = face_detection_stats['face_detected_count'] + face_detection_stats['no_face_detected_count']
-    face_percentage = face_detection_stats['face_detected_count'] / total_detections if total_detections > 0 else 0
+        self.password_label = ttk.Label(root, text="Password:")
+        self.password_label.grid(row=1, column=0, padx=10, pady=10)
+        self.password_entry = ttk.Entry(root, show='*')
+        self.password_entry.grid(row=1, column=1, padx=10, pady=10)
 
-    # Update the pie chart
-    create_pie_chart(face_percentage)
+        # Submit button
+        self.submit_button = ttk.Button(root, text="Submit", command=self.submit_credentials)
+        self.submit_button.grid(row=2, column=0, columnspan=2, pady=10)
 
-    # Schedule the next update after 5000 milliseconds (5 seconds)
-    root.after(5000, update_pie_chart)
+        # Greeting label
+        self.greeting_label = ttk.Label(root, text="")
+        self.greeting_label.grid(row=3, column=0, columnspan=2, pady=10)
 
-# Function to run face detection
-def run_face_detection():
-    # Load pre-trained face and eye classifiers
-    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-    eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
+        # Video label for displaying camera feed
+        self.video_label = ttk.Label(root)
+        self.video_label.grid(row=4, column=0, pady=10)
 
-    # Open the camera
-    cap = cv2.VideoCapture(0)
+        # Timer label for displaying total time, productive time, and unproductive time
+        self.timer_label = ttk.Label(root,
+                                     text="Total Time: 0 seconds\nProductive Time: 0 seconds\nUnproductive Time: 0 seconds")
+        self.timer_label.grid(row=5, column=0, columnspan=2, pady=10)
 
-    # Function to check if PyCharm is running
-    def is_pycharm_running():
-        for process in psutil.process_iter(['pid', 'name']):
-            if 'pycharm64.exe' in process.info['name'].lower():
-                return True
-        return False
+        # Run the Tkinter event loop
+        self.update_pie_chart()
 
-    def detect_faces():
-        # Capture frame-by-frame
-        ret, frame = cap.read()
-        if not ret:
-            return
+    def submit_credentials(self):
+        username = self.username_entry.get()
+        password = self.password_entry.get()
 
-        # Convert frame to grayscale
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-        # Detect faces in the frame
-        faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-
-        # Check if face is detected
-        if len(faces) > 0:
-            # Check if PyCharm is running
-            if is_pycharm_running():
-                face_detection_stats['face_detected_count'] += 1
-            else:
-                # Increment no_face_detected_count and notify
-                notification.notify(
-                    title='PyCharm Not Found',
-                    message='PyCharm is not running!',
-                    app_name='Face Detection App',
-                    timeout=5
-                )
-                face_detection_stats['no_face_detected_count'] += 1
+        # Check credentials
+        if username == 'WhiteDevils' and password == 'WhiteDevils':
+            self.greeting_label.config(text=f"Hello, {username}!")
+            # Start face detection
+            self.run_face_detection()
+            # Start the timer
+            self.total_time = 0
+            self.productive_time = 0
+            self.unproductive_time = 0
+            self.update_timer()
         else:
-            # Check if PyCharm is running
-            if is_pycharm_running():
-                # Increment no_face_detected_count and notify
-                notification.notify(
-                    title='No Face Detected',
-                    message='Your face is not seen!',
-                    app_name='Face Detection App',
-                    timeout=5
-                )
-                face_detection_stats['no_face_detected_count'] += 1
+            self.greeting_label.config(text="Invalid username or password")
 
-        # Schedule the next face detection after 5000 milliseconds (5 seconds)
-        root.after(5000, detect_faces)
+    def update_pie_chart(self):
+        # Calculate the percentage of face detected
+        total_detections = self.face_detection_stats['face_detected_count'] + self.face_detection_stats[
+            'no_face_detected_count']
+        face_percentage = self.face_detection_stats[
+                              'face_detected_count'] / total_detections if total_detections > 0 else 0
 
-        # Display the frame
-        display_frame(frame)
+        # Update the pie chart
+        self.create_pie_chart(face_percentage)
 
-    # Start the face detection loop
-    detect_faces()
+        # Schedule the next update after 5000 milliseconds (5 seconds)
+        self.root.after(5000, self.update_pie_chart)
 
-# Function to display the frame in the Tkinter window
-def display_frame(frame):
-    # Convert OpenCV frame to PIL format
-    image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    image = Image.fromarray(image)
+    def update_timer(self):
+        self.total_time += 1
+        self.timer_label.config(
+            text=f"Total Time: {self.total_time} seconds\nProductive Time: {self.productive_time} seconds\nUnproductive Time: {self.unproductive_time} seconds")
+        # Schedule the next update after 1000 milliseconds (1 second)
+        self.root.after(1000, self.update_timer)
 
-    # Convert PIL image to Tkinter format
-    photo = ImageTk.PhotoImage(image=image)
+    def run_face_detection(self):
+        # Load pre-trained face and eye classifiers
+        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+        # Open the camera
+        cap = cv2.VideoCapture(0)
 
-    # Update the label with the new image
-    video_label.config(image=photo)
-    video_label.image = photo
+        def is_pycharm_running():
+            for process in psutil.process_iter(['pid', 'name']):
+                if 'pycharm64.exe' in process.info['name'].lower():
+                    return True
+            return False
 
-# Function to create the pie chart
-def create_pie_chart(face_percentage):
-    # Create a pie chart
-    labels = ['Face Detected', 'No Face Detected']
-    sizes = [face_percentage, 1 - face_percentage]
+        def detect_faces():
+            ret, frame = cap.read()
+            if not ret:
+                return
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+            if len(faces) > 0:
+                if is_pycharm_running():
+                    self.face_detection_stats['face_detected_count'] += 1
+                    self.productive_time += 1
+                else:
+                    notification.notify(
+                        title='PyCharm Not Found',
+                        message='PyCharm is not running!',
+                        app_name='Face Detection App',
+                        timeout=5
+                    )
+                    self.face_detection_stats['no_face_detected_count'] += 1
+                    self.unproductive_time += 1
+            else:
+                if is_pycharm_running():
+                    notification.notify(
+                        title='No Face Detected',
+                        message='Your face is not seen!',
+                        app_name='Face Detection App',
+                        timeout=5
+                    )
+                    self.face_detection_stats['no_face_detected_count'] += 1
+                    self.unproductive_time += 1
+            self.display_frame(frame)
+            self.root.after(5000, detect_faces)
 
-    fig, ax = plt.subplots()
-    ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=['green', 'red'])
-    ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle
+        detect_faces()
 
-    # Display the pie chart in the Tkinter window
-    pie_chart_canvas = FigureCanvasTkAgg(fig, master=root)
-    pie_chart_canvas_widget = pie_chart_canvas.get_tk_widget()
-    pie_chart_canvas_widget.grid(row=4, column=1, pady=10)
+    def display_frame(self, frame):
+        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        image = Image.fromarray(image)
+        photo = ImageTk.PhotoImage(image=image)
+        self.video_label.config(image=photo)
+        self.video_label.image = photo
 
-# GUI setup
-root = tk.Tk()
-root.title("Face Detection App")
+    def create_pie_chart(self, face_percentage):
+        labels = ['Face Detected', 'No Face Detected']
+        sizes = [face_percentage, 1 - face_percentage]
+        fig, ax = plt.subplots()
+        ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=['green', 'red'])
+        ax.axis('equal')
+        pie_chart_canvas = FigureCanvasTkAgg(fig, master=self.root)
+        pie_chart_canvas_widget = pie_chart_canvas.get_tk_widget()
+        pie_chart_canvas_widget.grid(row=4, column=1, pady=10)
 
-# Username and password entry
-username_label = ttk.Label(root, text="Username:")
-username_label.grid(row=0, column=0, padx=10, pady=10)
-username_entry = ttk.Entry(root)
-username_entry.grid(row=0, column=1, padx=10, pady=10)
 
-password_label = ttk.Label(root, text="Password:")
-password_label.grid(row=1, column=0, padx=10, pady=10)
-password_entry = ttk.Entry(root, show='*')
-password_entry.grid(row=1, column=1, padx=10, pady=10)
-
-# Submit button
-submit_button = ttk.Button(root, text="Submit", command=lambda: submit_credentials(username_entry, password_entry))
-submit_button.grid(row=2, column=0, columnspan=2, pady=10)
-
-# Greeting label
-greeting_label = ttk.Label(root, text="")
-greeting_label.grid(row=3, column=0, columnspan=2, pady=10)
-
-# Video label for displaying camera feed
-video_label = ttk.Label(root)
-video_label.grid(row=4, column=0, pady=10)
-
-# Run the Tkinter event loop
-root.after(0, update_pie_chart)
-root.mainloop()
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = FaceDetectionApp(root)
+    root.mainloop()
